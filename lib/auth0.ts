@@ -1,14 +1,4 @@
-import { initAuth0 } from '@auth0/nextjs-auth0';
 import axios from 'axios';
-
-// Initialize Auth0
-export const auth0 = initAuth0({
-  secret: process.env.AUTH0_SECRET!,
-  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL!,
-  baseURL: process.env.AUTH0_BASE_URL!,
-  clientID: process.env.AUTH0_CLIENT_ID!,
-  clientSecret: process.env.AUTH0_CLIENT_SECRET!,
-});
 
 // Auth0 Management API Client
 class Auth0Manager {

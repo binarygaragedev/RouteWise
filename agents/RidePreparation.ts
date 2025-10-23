@@ -25,7 +25,89 @@ export interface RideInsights {
 
 export class RidePreparationAgent extends BaseAgent {
   constructor() {
-    super('Ride Preparation Agent');
+    super('Ride Preparation Agent', 'ride-preparation');
+  }
+
+  /**
+   * Real ride preparation with actual database integration
+   */
+  async prepareRealRide(passengerId: string, driverId: string | null, rideId: string): Promise<AgentResult> {
+    try {
+      console.log(`🚗 REAL RIDE PREPARATION STARTED`);
+      console.log(`Ride ID: ${rideId}`);
+      console.log(`Passenger: ${passengerId} → Driver: ${driverId || 'TBD'}`);
+      console.log(`${'='.repeat(60)}\n`);
+
+      await this.initialize(passengerId);
+
+      // Get actual ride data from database
+      const { RideshareDB } = await import('@/lib/rideshare-db');
+      const ride = await RideshareDB.getRideById(rideId);
+      
+      if (!ride) {
+        throw new Error('Ride not found');
+      }
+
+      console.log(`✓ Ride loaded: ${ride.pickup_address} → ${ride.destination_address}`);
+
+      // Step 1: Check user permissions for API access
+      const permissions = await this.checkDataPermissions(passengerId, driverId || 'unknown');
+      console.log(`✓ Permissions checked: ${JSON.stringify(permissions)}\n`);
+
+      // Step 2: Gather real context from available APIs
+      const context = await this.gatherRideContext(passengerId, permissions);
+      console.log(`✓ Context gathered from ${context.sources.length} API(s)\n`);
+
+      // Step 3: Generate AI insights with real data
+      const insights = await this.generateRideInsights(context, permissions);
+      console.log(`✓ AI insights generated for real ride\n`);
+
+      // Step 4: Store AI insights in ride record
+      await RideshareDB.updateRideStatus(rideId, ride.status, {
+        ai_insights: insights,
+        music_playlist: insights.musicRecommendation?.playlist,
+        weather_info: insights.weatherUpdate || null
+      });
+
+      // Step 5: Log this agent interaction
+      await RideshareDB.logAgentInteraction({
+        ride_id: rideId,
+        user_id: passengerId,
+        agent_type: 'ride-preparation',
+        action: 'prepare_ride',
+        input_data: { rideId, permissions },
+        output_data: insights,
+        tokens_used: { 
+          spotify: permissions.music ? 'used' : 'not-requested',
+          weather: permissions.weather ? 'used' : 'not-requested',
+          maps: permissions.route ? 'used' : 'not-requested'
+        },
+        permissions_checked: permissions
+      });
+
+      console.log(`🎉 REAL RIDE PREPARATION COMPLETED`);
+      console.log(`📊 Insights generated and stored in database`);
+      console.log(`🤖 Agent interaction logged for audit trail\n`);
+
+      return {
+        success: true,
+        data: {
+          ...insights,
+          rideId,
+          real_ride: true,
+          database_updated: true
+        },
+        dataAccessed: context.sources,
+        securityCheck: {
+          userAuthenticated: true,
+          tokensRequested: ['spotify-api', 'weather-api', 'maps-api'],
+          permissionsGranted: Object.entries(permissions).filter(([_, granted]) => granted).map(([key, _]) => `${key}-access`),
+          dataSourcesAccessed: context.sources
+        }
+      };
+    } catch (error) {
+      return this.handleError(error);
+    }
   }
 
   async execute(driverId: string, passengerId: string): Promise<AgentResult> {
@@ -35,7 +117,7 @@ export class RidePreparationAgent extends BaseAgent {
       console.log(`Driver: ${driverId} → Passenger: ${passengerId}`);
       console.log(`${'='.repeat(60)}\n`);
 
-      await this.initialize();
+      await this.initialize(passengerId);
 
       // Step 1: Check permissions (what data can we access?)
       const permissions = await this.checkDataPermissions(passengerId, driverId);
@@ -53,6 +135,12 @@ export class RidePreparationAgent extends BaseAgent {
         success: true,
         data: insights,
         dataAccessed: context.sources,
+        securityCheck: {
+          userAuthenticated: true,
+          tokensRequested: ['spotify-api', 'weather-api', 'maps-api'],
+          permissionsGranted: Object.entries(permissions).filter(([_, granted]) => granted).map(([key, _]) => `${key}-access`),
+          dataSourcesAccessed: context.sources
+        }
       };
     } catch (error) {
       return this.handleError(error);

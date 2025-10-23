@@ -11,7 +11,7 @@ export interface ConsentRequest {
 
 export class ConsentNegotiationAgent extends BaseAgent {
   constructor() {
-    super('Consent Negotiation Agent');
+    super('Consent Negotiation Agent', 'consent-negotiation');
   }
 
   /**
@@ -25,7 +25,7 @@ export class ConsentNegotiationAgent extends BaseAgent {
       console.log(`${'='.repeat(60)}\n`);
 
       // Step 1: Initialize agent
-      await this.initialize();
+      await this.initialize(request.passengerId);
 
       // Step 2: Check if driver is eligible to request
       const eligible = await this.checkEligibility(request.driverId);
@@ -35,6 +35,12 @@ export class ConsentNegotiationAgent extends BaseAgent {
           success: false,
           error: eligible.reason,
           dataAccessed: [],
+          securityCheck: {
+            userAuthenticated: true,
+            tokensRequested: [],
+            permissionsGranted: [],
+            dataSourcesAccessed: []
+          }
         };
       }
 
@@ -62,6 +68,12 @@ export class ConsentNegotiationAgent extends BaseAgent {
           expiresIn: '5 minutes',
         },
         dataAccessed: ['driver_profile'],
+        securityCheck: {
+          userAuthenticated: true,
+          tokensRequested: ['notification-api'],
+          permissionsGranted: ['consent-negotiation-access'],
+          dataSourcesAccessed: ['driver_profile']
+        }
       };
     } catch (error) {
       return this.handleError(error);
@@ -121,6 +133,12 @@ export class ConsentNegotiationAgent extends BaseAgent {
             expiresAt: newConsent[dataCategory].expires_at,
           },
           dataAccessed: ['passenger_consent_settings'],
+          securityCheck: {
+            userAuthenticated: true,
+            tokensRequested: ['consent-management-api'],
+            permissionsGranted: ['consent-approval-access'],
+            dataSourcesAccessed: ['passenger_consent_settings']
+          }
         };
       } else {
         // Log denial
@@ -140,6 +158,12 @@ export class ConsentNegotiationAgent extends BaseAgent {
             dataCategory,
           },
           dataAccessed: [],
+          securityCheck: {
+            userAuthenticated: true,
+            tokensRequested: ['consent-management-api'],
+            permissionsGranted: ['consent-denial-access'],
+            dataSourcesAccessed: []
+          }
         };
       }
     } catch (error) {

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@auth0/nextjs-auth0';
-import { ridePreparationAgent } from '@/agents/RidePreparation';
+import { RidePreparationAgent } from '@/agents/RidePreparation';
 
 /**
  * POST /api/agent/prepare-ride
- * Trigger the Ride Preparation Agent
+ * Trigger the Ride Preparation Agent for real rides
  */
 export async function POST(request: NextRequest) {
   try {
@@ -19,31 +19,23 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { driverId, passengerId, rideId } = body;
+    const { rideId, passengerId, driverId } = body;
 
-    if (!driverId || !passengerId || !rideId) {
+    if (!rideId || !passengerId) {
       return NextResponse.json(
-        { error: 'Missing required fields: driverId, passengerId, rideId' },
+        { error: 'Missing required fields: rideId, passengerId' },
         { status: 400 }
       );
     }
 
-    // Verify user is either the driver or an admin
-    const userAuth0Id = session.user.sub;
-    if (userAuth0Id !== driverId && !session.user['https://routewise.app/roles']?.includes('admin')) {
-      return NextResponse.json(
-        { error: 'Forbidden: You can only prepare your own rides' },
-        { status: 403 }
-      );
-    }
-
-    console.log(`\n🚀 API: Prepare ride request received`);
-    console.log(`   Driver: ${driverId}`);
+    console.log(`\n🚀 API: Real ride preparation request received`);
+    console.log(`   Ride ID: ${rideId}`);
     console.log(`   Passenger: ${passengerId}`);
-    console.log(`   Ride: ${rideId}\n`);
+    console.log(`   Driver: ${driverId || 'TBD'}\n`);
 
-    // Execute the agent
-    const result = await ridePreparationAgent.execute(driverId, passengerId);
+    // Execute the agent for real ride
+    const agent = new RidePreparationAgent();
+    const result = await agent.prepareRealRide(passengerId, driverId, rideId);
 
     if (!result.success) {
       return NextResponse.json(

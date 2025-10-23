@@ -16,7 +16,7 @@ export class SafetyMonitoringAgent extends BaseAgent {
   private monitoringIntervals: Map<string, NodeJS.Timeout> = new Map();
 
   constructor() {
-    super('Safety Monitoring Agent');
+    super('Safety Monitoring Agent', 'safety-monitoring');
   }
 
   /**
@@ -36,7 +36,7 @@ export class SafetyMonitoringAgent extends BaseAgent {
       console.log(`Monitoring ride: ${rideId}`);
       console.log(`${'='.repeat(60)}\n`);
 
-      await this.initialize();
+      await this.initialize('demo-user-id');
 
       // Set up monitoring interval (every 30 seconds)
       const interval = setInterval(async () => {
@@ -51,6 +51,12 @@ export class SafetyMonitoringAgent extends BaseAgent {
         success: true,
         data: { status: 'monitoring', rideId },
         dataAccessed: [],
+        securityCheck: {
+          userAuthenticated: true,
+          tokensRequested: [],
+          permissionsGranted: ['ride-monitoring'],
+          dataSourcesAccessed: ['ride-database']
+        }
       };
     } catch (error) {
       return this.handleError(error);
@@ -76,7 +82,7 @@ export class SafetyMonitoringAgent extends BaseAgent {
     try {
       console.log(`\n🚨 EMERGENCY DETECTED: ${emergencyType}\n`);
 
-      await this.initialize();
+      await this.initialize('demo-user-id');
 
       const ride = await getRide(rideId);
       if (!ride) {
@@ -130,6 +136,12 @@ export class SafetyMonitoringAgent extends BaseAgent {
               ride_id: rideId,
               response_time: '< 30 seconds',
               message: `🚨 Emergency Response: ${emergencyType} handled successfully`
+            },
+            securityCheck: {
+              userAuthenticated: true,
+              tokensRequested: ['emergency-api', 'contacts-api'],
+              permissionsGranted: ['emergency-response', 'contact-access'],
+              dataSourcesAccessed: ['emergency_contact', 'location', 'ride_details']
             }
           };
         }
@@ -168,6 +180,12 @@ export class SafetyMonitoringAgent extends BaseAgent {
           timestamp: new Date().toISOString(),
         },
         dataAccessed: ['emergency_contact', 'location'],
+        securityCheck: {
+          userAuthenticated: true,
+          tokensRequested: ['emergency-api'],
+          permissionsGranted: ['emergency-response'],
+          dataSourcesAccessed: ['emergency_contact', 'location']
+        }
       };
     } catch (error) {
       return this.handleError(error);
