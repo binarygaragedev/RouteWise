@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "demo": "tsx scripts/demo.ts",
-    "contest-demo": "tsx scripts/contest-demo.ts"
+    "contest-demo": "tsx scripts/contest-demo.ts",
+    "vercel-build": "next build",
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",

@@ -1,16 +1,23 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Handle demo mode when environment variables might not be properly configured
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://demo.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'demo-service-key';
+// Check if we're in build time (no environment variables needed)
+const isBuildTime = process.env.NODE_ENV === undefined && process.env.NEXT_PHASE === 'phase-production-build';
 
-// Create a dummy client for demo purposes if real credentials aren't available
-let db: SupabaseClient | null;
-try {
-  db = createClient(supabaseUrl, supabaseServiceKey);
-} catch (error) {
-  console.warn('⚠️  Using mock database client for demo');
-  db = null;
+// Handle demo mode when environment variables might not be properly configured
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+
+// Create a database client or null for demo/build mode
+let db: SupabaseClient | null = null;
+
+if (!isBuildTime && supabaseUrl && supabaseServiceKey) {
+  try {
+    db = createClient(supabaseUrl, supabaseServiceKey);
+  } catch (error) {
+    console.warn('⚠️  Failed to create Supabase client:', error);
+  }
+} else if (!isBuildTime) {
+  console.warn('⚠️  Missing Supabase credentials - using mock database for demo');
 }
 
 export { db };
